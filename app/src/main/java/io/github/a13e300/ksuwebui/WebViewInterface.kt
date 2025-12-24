@@ -176,6 +176,13 @@ class WebViewInterface(
     }
 
     @JavascriptInterface
+    fun enableInsets(enable: Boolean = true) {
+        if (context is WebUIActivity) {
+            context.enableInsets(enable)
+        }
+    }
+
+    @JavascriptInterface
     fun moduleInfo(): String {
         val currentModuleInfo = JSONObject()
         currentModuleInfo.put("moduleDir", modDir)
