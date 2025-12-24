@@ -1,7 +1,7 @@
 @file:Suppress("UnstableApiUsage")
 
 import com.android.build.gradle.tasks.PackageAndroidArtifact
-import java.io.ByteArrayOutputStream
+import com.android.build.gradle.internal.api.BaseVariantOutputImpl
 import java.io.FileInputStream
 import java.util.Properties
 
@@ -17,17 +17,10 @@ val keystoreProperties = if (keystorePropertiesFile.exists() && keystoreProperti
     }
 } else null
 
-fun String.execute(currentWorkingDir: File = file("./")): String {
-    val byteOut = ByteArrayOutputStream()
-    project.exec {
-        workingDir = currentWorkingDir
-        commandLine = split("\\s".toRegex())
-        standardOutput = byteOut
-    }
-    return String(byteOut.toByteArray()).trim()
+val gitCommitCount = run {
+    val process = Runtime.getRuntime().exec(arrayOf("git", "rev-list", "--count", "HEAD"))
+    process.inputStream.bufferedReader().use { it.readText().trim().toInt() }
 }
-
-val gitCommitCount = "git rev-list HEAD --count".execute().toInt()
 
 android {
     namespace = "io.github.a13e300.ksuwebui"
@@ -50,7 +43,6 @@ android {
         targetSdk = 36
         versionCode = gitCommitCount
         versionName = "1.0"
-        setProperty("archivesBaseName", "KsuWebUI-$versionName-$versionCode")
     }
 
     buildTypes {
@@ -65,6 +57,18 @@ android {
             signingConfig = if (releaseSig != null) releaseSig else {
                 println("use debug signing config")
                 signingConfigs["debug"]
+            }
+        }
+    }
+
+    applicationVariants.all {
+        outputs.forEach {
+            val output = it as BaseVariantOutputImpl
+            output.outputFileName = "KsuWebUI-${versionName}-${versionCode}-$name.apk"
+        }
+        kotlin.sourceSets {
+            getByName(name) {
+                kotlin.srcDir("build/generated/ksp/$name/kotlin")
             }
         }
     }
