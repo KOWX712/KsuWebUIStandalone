@@ -13,7 +13,10 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import com.topjohnwu.superuser.nio.FileSystemManager
 import io.github.a13e300.ksuwebui.databinding.ActivityMainBinding
 import io.github.a13e300.ksuwebui.databinding.ItemModuleBinding
@@ -39,6 +42,10 @@ class MainActivity : AppCompatActivity(), FileSystemService.Listener {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            AppList.getApps(this@MainActivity)
+        }
 
         // Add insets
         ViewCompat.setOnApplyWindowInsetsListener(binding.appbar) { v, insets ->
