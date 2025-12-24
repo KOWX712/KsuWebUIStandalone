@@ -10,9 +10,11 @@ import androidx.webkit.WebViewAssetLoader;
 
 import com.topjohnwu.superuser.nio.FileSystemManager;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.zip.GZIPInputStream;
 
 /**
@@ -57,6 +59,18 @@ public final class RemoteFsPathHandler implements WebViewAssetLoader.PathHandler
 
     private final FileSystemManager mFs;
 
+    private final InsetsSupplier mInsetsSupplier;
+    private final OnInsetsRequestedListener mOnInsetsRequestedListener;
+
+    public interface InsetsSupplier {
+        @NonNull
+        Insets get();
+    }
+
+    public interface OnInsetsRequestedListener {
+        void onInsetsRequested(boolean enable);
+    }
+
     /**
      * Creates PathHandler for app's internal storage.
      * The directory to be exposed must be inside either the application's internal data
@@ -77,10 +91,20 @@ public final class RemoteFsPathHandler implements WebViewAssetLoader.PathHandler
      * @param context {@link Context} that is used to access app's internal storage.
      * @param directory the absolute path of the exposed app internal storage directory from
      *                  which files can be loaded.
+     * @param insetsSupplier {@link InsetsSupplier} to provide window insets for styling web content.
+     * @param onInsetsRequestedListener {@link OnInsetsRequestedListener} to notify when insets are requested.
      * @throws IllegalArgumentException if the directory is not allowed.
      */
-    public RemoteFsPathHandler(@NonNull Context context, @NonNull File directory, FileSystemManager fs) {
+    public RemoteFsPathHandler(
+            @NonNull Context context,
+            @NonNull File directory,
+            FileSystemManager fs,
+            @NonNull InsetsSupplier insetsSupplier,
+            OnInsetsRequestedListener onInsetsRequestedListener
+    ) {
         try {
+            mInsetsSupplier = insetsSupplier;
+            mOnInsetsRequestedListener = onInsetsRequestedListener;
             mDirectory = new File(getCanonicalDirPath(directory));
             if (!isAllowedInternalStorageDir(context)) {
                 throw new IllegalArgumentException("The given directory \"" + directory
@@ -128,6 +152,17 @@ public final class RemoteFsPathHandler implements WebViewAssetLoader.PathHandler
     @WorkerThread
     @NonNull
     public WebResourceResponse handle(@NonNull String path) {
+        if ("internal/insets.css".equals(path)) {
+            if (mOnInsetsRequestedListener != null) {
+                mOnInsetsRequestedListener.onInsetsRequested(true);
+            }
+            String css = mInsetsSupplier.get().getCss();
+            return new WebResourceResponse(
+                "text/css",
+                "utf-8",
+                new ByteArrayInputStream(css.getBytes(StandardCharsets.UTF_8))
+            );
+        }
         try {
             File file = getCanonicalFileIfChild(mDirectory, path);
             if (file != null) {

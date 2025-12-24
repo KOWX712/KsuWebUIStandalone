@@ -2,11 +2,11 @@ package io.github.a13e300.ksuwebui
 
 import android.annotation.SuppressLint
 import android.app.ActivityManager
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
 import android.view.ViewGroup
-import android.view.ViewGroup.MarginLayoutParams
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
@@ -17,21 +17,25 @@ import androidx.activity.ComponentActivity
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.lifecycleScope
 import androidx.webkit.WebViewAssetLoader
 import com.google.android.material.progressindicator.CircularProgressIndicator
 import com.topjohnwu.superuser.nio.FileSystemManager
+import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import java.io.File
 
 @SuppressLint("SetJavaScriptEnabled")
 class WebUIActivity : ComponentActivity(), FileSystemService.Listener {
     private lateinit var webviewInterface: WebViewInterface
-
-    private lateinit var webView: WebView
+    private var webView: WebView? = null
+    private lateinit var container: FrameLayout
+    private lateinit var insets: Insets
+    private var insetsContinuation: CancellableContinuation<Unit>? = null
+    private var isInsetsEnabled = false
     private lateinit var moduleDir: String
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -64,7 +68,7 @@ class WebUIActivity : ComponentActivity(), FileSystemService.Listener {
         }
     }
 
-    private fun setupWebView() {
+    private suspend fun setupWebView() {
         val moduleId = intent.getStringExtra("id")
         if (moduleId == null) {
             finish()
@@ -85,25 +89,50 @@ class WebUIActivity : ComponentActivity(), FileSystemService.Listener {
         WebView.setWebContentsDebuggingEnabled(prefs.getBoolean("enable_web_debugging", BuildConfig.DEBUG))
 
         moduleDir = "/data/adb/modules/$moduleId"
+        insets = Insets(0, 0, 0, 0)
 
-        webView = WebView(this).apply {
-            ViewCompat.setOnApplyWindowInsetsListener(this) { view, insets ->
-                val inset = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-                view.updateLayoutParams<MarginLayoutParams> {
-                    leftMargin = inset.left
-                    rightMargin = inset.right
-                    topMargin = inset.top
-                    bottomMargin = inset.bottom
+        container = FrameLayout(this).apply {
+            layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        }
+
+        this.webView = WebView(this).apply {
+            setBackgroundColor(Color.TRANSPARENT)
+            val density = resources.displayMetrics.density
+
+            ViewCompat.setOnApplyWindowInsetsListener(container) { view, windowInsets ->
+                val inset = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+                insets = Insets(
+                    top = (inset.top / density).toInt(),
+                    bottom = (inset.bottom / density).toInt(),
+                    left = (inset.left / density).toInt(),
+                    right = (inset.right / density).toInt()
+                )
+                if (isInsetsEnabled) {
+                    view.setPadding(0, 0, 0, 0)
+                } else {
+                    view.setPadding(inset.left, inset.top, inset.right, inset.bottom)
                 }
-                return@setOnApplyWindowInsetsListener insets
+                insetsContinuation?.resumeWith(Result.success(Unit))
+                insetsContinuation = null
+                WindowInsetsCompat.CONSUMED
             }
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
             settings.allowFileAccess = false
             webviewInterface = WebViewInterface(this@WebUIActivity, this, moduleDir)
         }
+        container.addView(this.webView)
+        setContentView(container)
 
-        setContentView(webView)
+        if (insets == Insets(0, 0, 0, 0)) {
+            suspendCancellableCoroutine { cont ->
+                insetsContinuation = cont
+                cont.invokeOnCancellation {
+                    insetsContinuation = null
+                }
+            }
+        }
+
         FileSystemService.start(this)
     }
 
@@ -116,7 +145,9 @@ class WebUIActivity : ComponentActivity(), FileSystemService.Listener {
                 RemoteFsPathHandler(
                     this,
                     webRoot,
-                    fs
+                    fs,
+                    { insets },
+                    { enable -> enableInsets(enable) }
                 )
             )
             .build()
@@ -144,7 +175,7 @@ class WebUIActivity : ComponentActivity(), FileSystemService.Listener {
                 return webViewAssetLoader.shouldInterceptRequest(url)
             }
         }
-        webView.apply {
+        webView?.apply {
             addJavascriptInterface(webviewInterface, "ksu")
             setWebViewClient(webViewClient)
             loadUrl("https://mui.kernelsu.org/index.html")
@@ -158,6 +189,15 @@ class WebUIActivity : ComponentActivity(), FileSystemService.Listener {
     override fun onLaunchFailed() {
         Toast.makeText(this, R.string.please_grant_root, Toast.LENGTH_SHORT).show()
         finish()
+    }
+
+    fun enableInsets(enable: Boolean = true) {
+        runOnUiThread {
+            if (isInsetsEnabled != enable) {
+                isInsetsEnabled = enable
+                ViewCompat.requestApplyInsets(container)
+            }
+        }
     }
 
     override fun onDestroy() {
