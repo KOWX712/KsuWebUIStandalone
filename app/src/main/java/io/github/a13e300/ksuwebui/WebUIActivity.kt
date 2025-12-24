@@ -2,6 +2,7 @@ package io.github.a13e300.ksuwebui
 
 import android.annotation.SuppressLint
 import android.app.ActivityManager
+import android.content.Context
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
@@ -37,6 +38,7 @@ class WebUIActivity : ComponentActivity(), FileSystemService.Listener {
     private var insetsContinuation: CancellableContinuation<Unit>? = null
     private var isInsetsEnabled = false
     private lateinit var moduleDir: String
+    private var enableWebDebugging = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Enable edge to edge
@@ -70,6 +72,10 @@ class WebUIActivity : ComponentActivity(), FileSystemService.Listener {
         }
     }
 
+    private fun erudaConsole(context: Context): String {
+        return context.assets.open("eruda.min.js").bufferedReader().use { it.readText() }
+    }
+
     private suspend fun setupWebView() {
         val moduleId = intent.getStringExtra("id")
         if (moduleId == null) {
@@ -88,7 +94,8 @@ class WebUIActivity : ComponentActivity(), FileSystemService.Listener {
         }
 
         val prefs = getSharedPreferences("settings", MODE_PRIVATE)
-        WebView.setWebContentsDebuggingEnabled(prefs.getBoolean("enable_web_debugging", BuildConfig.DEBUG))
+        enableWebDebugging = prefs.getBoolean("enable_web_debugging", BuildConfig.DEBUG)
+        WebView.setWebContentsDebuggingEnabled(enableWebDebugging)
 
         moduleDir = "/data/adb/modules/$moduleId"
         insets = Insets(0, 0, 0, 0)
@@ -175,6 +182,13 @@ class WebUIActivity : ComponentActivity(), FileSystemService.Listener {
                 }
 
                 return webViewAssetLoader.shouldInterceptRequest(url)
+            }
+
+            override fun onPageFinished(view: WebView?, url: String?) {
+                if (enableWebDebugging) {
+                    view?.evaluateJavascript(erudaConsole(this@WebUIActivity), null)
+                    view?.evaluateJavascript("eruda.init();", null)
+                }
             }
         }
         webView?.apply {
