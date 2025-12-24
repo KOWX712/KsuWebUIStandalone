@@ -58,6 +58,7 @@ public final class RemoteFsPathHandler implements WebViewAssetLoader.PathHandler
     private final File mDirectory;
 
     private final FileSystemManager mFs;
+    private final Context mContext;
 
     private final InsetsSupplier mInsetsSupplier;
     private final OnInsetsRequestedListener mOnInsetsRequestedListener;
@@ -103,6 +104,7 @@ public final class RemoteFsPathHandler implements WebViewAssetLoader.PathHandler
             OnInsetsRequestedListener onInsetsRequestedListener
     ) {
         try {
+            mContext = context;
             mInsetsSupplier = insetsSupplier;
             mOnInsetsRequestedListener = onInsetsRequestedListener;
             mDirectory = new File(getCanonicalDirPath(directory));
@@ -157,6 +159,15 @@ public final class RemoteFsPathHandler implements WebViewAssetLoader.PathHandler
                 mOnInsetsRequestedListener.onInsetsRequested(true);
             }
             String css = mInsetsSupplier.get().getCss();
+            return new WebResourceResponse(
+                "text/css",
+                "utf-8",
+                new ByteArrayInputStream(css.getBytes(StandardCharsets.UTF_8))
+            );
+        }
+        if ("internal/colors.css".equals(path)) {
+            boolean enableMonet = mContext.getSharedPreferences("settings", Context.MODE_PRIVATE).getBoolean("enable_monet", true);
+            String css = enableMonet ? MonetColorsProvider.INSTANCE.getColorsCss() : "";
             return new WebResourceResponse(
                 "text/css",
                 "utf-8",

@@ -11,4 +11,9 @@
         android:id="@+id/show_disabled"
         android:title="@string/show_disabled"
         app:showAsAction="never" />
+    <item
+        android:id="@+id/enable_monet"
+        android:title="@string/enable_monet_color"
+        android:checkable="true"
+        app:showAsAction="never" />
 </menu>

@@ -93,6 +93,15 @@ class MainActivity : AppCompatActivity(), FileSystemService.Listener {
                 true
             }
         }
+        menu.findItem(R.id.enable_monet).apply {
+            isChecked = prefs.getBoolean("enable_monet", true)
+            setOnMenuItemClickListener {
+                val newValue = !it.isChecked
+                prefs.edit { putBoolean("enable_monet", newValue) }
+                it.isChecked = newValue
+                true
+            }
+        }
         return true
     }
 

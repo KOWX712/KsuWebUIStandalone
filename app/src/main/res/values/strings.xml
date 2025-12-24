@@ -7,4 +7,5 @@
     <string name="author">Author: %s</string>
     <string name="version">Version: %s</string>
     <string name="show_disabled">Show Disabled</string>
+    <string name="enable_monet_color">Monet Color</string>
 </resources>

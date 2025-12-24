@@ -8,4 +8,5 @@
   <string name="author">作者: %s</string>
   <string name="version">バージョン: %s</string>
   <string name="show_disabled">無効化済みを表示</string>
+  <string name="enable_monet_color">Monet カラー</string>
 </resources>
