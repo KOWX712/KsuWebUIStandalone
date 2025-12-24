@@ -2,7 +2,6 @@ package io.github.a13e300.ksuwebui
 
 import android.annotation.SuppressLint
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -18,6 +17,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.topjohnwu.superuser.nio.FileSystemManager
 import io.github.a13e300.ksuwebui.databinding.ActivityMainBinding
 import io.github.a13e300.ksuwebui.databinding.ItemModuleBinding
+import androidx.core.net.toUri
+import androidx.core.content.edit
 
 @SuppressLint("NotifyDataSetChanged")
 class MainActivity : AppCompatActivity(), FileSystemService.Listener {
@@ -70,7 +71,7 @@ class MainActivity : AppCompatActivity(), FileSystemService.Listener {
             isChecked = prefs.getBoolean("enable_web_debugging", BuildConfig.DEBUG)
             setOnMenuItemClickListener {
                 val newValue = !it.isChecked
-                prefs.edit().putBoolean("enable_web_debugging", newValue).apply()
+                prefs.edit { putBoolean("enable_web_debugging", newValue) }
                 it.isChecked = newValue
                 true
             }
@@ -79,7 +80,7 @@ class MainActivity : AppCompatActivity(), FileSystemService.Listener {
             isChecked = prefs.getBoolean("show_disabled", false)
             setOnMenuItemClickListener {
                 val newValue = !it.isChecked
-                prefs.edit().putBoolean("show_disabled", newValue).apply()
+                prefs.edit { putBoolean("show_disabled", newValue) }
                 it.isChecked = newValue
                 refresh()
                 true
@@ -172,7 +173,7 @@ class MainActivity : AppCompatActivity(), FileSystemService.Listener {
             holder.binding.root.setOnClickListener {
                 startActivity(
                     Intent(this@MainActivity, WebUIActivity::class.java)
-                        .setData(Uri.parse("ksuwebui://webui/$id"))
+                        .setData("ksuwebui://webui/$id".toUri())
                         .putExtra("id", id)
                         .putExtra("name", name)
                 )

@@ -1,13 +1,32 @@
 @file:Suppress("UnstableApiUsage")
 
-import com.android.build.gradle.tasks.PackageAndroidArtifact
+import org.gradle.api.provider.ValueSourceParameters
+import org.gradle.process.ExecOperations
 import java.io.ByteArrayOutputStream
 import java.io.FileInputStream
 import java.util.Properties
+import javax.inject.Inject
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.jetbrains.kotlin.android)
+}
+
+abstract class ExternalProcessValueSource : ValueSource<String, ExternalProcessValueSource.Parameters> {
+    interface Parameters : ValueSourceParameters {
+        val command: ListProperty<String>
+    }
+
+    @get:Inject
+    abstract val execOperations: ExecOperations
+
+    override fun obtain(): String {
+        val output = ByteArrayOutputStream()
+        execOperations.exec {
+            commandLine(parameters.command.get())
+            standardOutput = output
+        }
+        return output.toString().trim()
+    }
 }
 
 val keystorePropertiesFile: File = rootProject.file("keystore.properties")
@@ -17,21 +36,19 @@ val keystoreProperties = if (keystorePropertiesFile.exists() && keystoreProperti
     }
 } else null
 
-fun String.execute(currentWorkingDir: File = file("./")): String {
-    val byteOut = ByteArrayOutputStream()
-    project.exec {
-        workingDir = currentWorkingDir
-        commandLine = split("\\s".toRegex())
-        standardOutput = byteOut
-    }
-    return String(byteOut.toByteArray()).trim()
+val gitDescribeProvider = providers.of(ExternalProcessValueSource::class) {
+    parameters.command.set(listOf("git", "describe", "--tags", "--abbrev=0"))
 }
 
-val gitCommitCount = "git rev-list HEAD --count".execute().toInt()
+val gitCommitCountProvider = providers.of(ExternalProcessValueSource::class) {
+    parameters.command.set(listOf("git", "rev-list", "--count", "HEAD"))
+}.map { it.toInt() }
 
 android {
     namespace = "io.github.a13e300.ksuwebui"
-    compileSdk = 36
+    compileSdk = 37
+    compileSdkMinor = 1
+    buildToolsVersion = "37.0.0"
 
     signingConfigs {
         if (keystoreProperties != null) {
@@ -47,10 +64,9 @@ android {
     defaultConfig {
         applicationId = "io.github.a13e300.ksuwebui"
         minSdk = 26
-        targetSdk = 36
-        versionCode = gitCommitCount
-        versionName = "1.0"
-        setProperty("archivesBaseName", "KsuWebUI-$versionName-$versionCode")
+        targetSdk = 37
+        versionCode = gitCommitCountProvider.get()
+        versionName = gitDescribeProvider.get()
     }
 
     buildTypes {
@@ -68,13 +84,10 @@ android {
             }
         }
     }
+
     dependenciesInfo {
         includeInApk = false
         includeInBundle = false
-    }
-    // https://stackoverflow.com/a/77745844
-    tasks.withType<PackageAndroidArtifact> {
-        doFirst { appMetadata.asFile.orNull?.writeText("") }
     }
     androidResources {
         generateLocaleConfig = true
@@ -82,11 +95,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
-    }
-    kotlin {
-        jvmToolchain {
-            languageVersion.set(JavaLanguageVersion.of(21))
-        }
     }
     buildFeatures {
         buildConfig = true
@@ -97,6 +105,12 @@ android {
             excludes += "**"
         }
     }
+}
+
+base {
+    archivesName.set(
+        "KsuWebUI-${gitDescribeProvider.get()}-${gitCommitCountProvider.get()}"
+    )
 }
 
 dependencies {
