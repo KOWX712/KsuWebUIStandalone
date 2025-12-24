@@ -4,19 +4,27 @@ import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.os.Build
 import android.os.Bundle
+import android.view.Gravity
+import android.view.ViewGroup
 import android.view.ViewGroup.MarginLayoutParams
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
+import androidx.lifecycle.lifecycleScope
 import androidx.webkit.WebViewAssetLoader
+import com.google.android.material.progressindicator.CircularProgressIndicator
 import com.topjohnwu.superuser.nio.FileSystemManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 @SuppressLint("SetJavaScriptEnabled")
@@ -35,6 +43,28 @@ class WebUIActivity : ComponentActivity(), FileSystemService.Listener {
 
         super.onCreate(savedInstanceState)
 
+        val progressLayout = FrameLayout(this).apply {
+            addView(CircularProgressIndicator(this@WebUIActivity).apply {
+                layoutParams = FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    Gravity.CENTER
+                )
+            })
+        }
+        setContentView(progressLayout)
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            if (AppList.getApplist().isEmpty()) {
+                AppList.getApps(this@WebUIActivity)
+            }
+            withContext(Dispatchers.Main) {
+                setupWebView()
+            }
+        }
+    }
+
+    private fun setupWebView() {
         val moduleId = intent.getStringExtra("id")
         if (moduleId == null) {
             finish()
@@ -95,7 +125,23 @@ class WebUIActivity : ComponentActivity(), FileSystemService.Listener {
                 view: WebView,
                 request: WebResourceRequest
             ): WebResourceResponse? {
-                return webViewAssetLoader.shouldInterceptRequest(request.url)
+                val url = request.url
+
+                // Handle ksu://icon/[packageName] to serve app icon via WebView
+                if (url.scheme.equals("ksu", ignoreCase = true) && url.host.equals("icon", ignoreCase = true)) {
+                    val packageName = url.path?.substring(1)
+                    if (!packageName.isNullOrEmpty()) {
+                        val icon = AppIconUtil.loadAppIconSync(this@WebUIActivity, packageName, 512)
+                        if (icon != null) {
+                            val stream = java.io.ByteArrayOutputStream()
+                            icon.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream)
+                            val inputStream = java.io.ByteArrayInputStream(stream.toByteArray())
+                            return WebResourceResponse("image/png", null, inputStream)
+                        }
+                    }
+                }
+
+                return webViewAssetLoader.shouldInterceptRequest(url)
             }
         }
         webView.apply {
