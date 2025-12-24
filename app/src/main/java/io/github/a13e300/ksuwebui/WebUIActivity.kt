@@ -47,6 +47,8 @@ class WebUIActivity : ComponentActivity(), FileSystemService.Listener {
 
         super.onCreate(savedInstanceState)
 
+        MonetColorsProvider.updateCss(this)
+
         val progressLayout = FrameLayout(this).apply {
             addView(CircularProgressIndicator(this@WebUIActivity).apply {
                 layoutParams = FrameLayout.LayoutParams(
