@@ -111,6 +111,7 @@ class MainActivity : AppCompatActivity(), FileSystemService.Listener {
             fs.getFile("/data/adb/modules").listFiles()!!.forEach { f ->
                 if (!f.isDirectory) return@forEach
                 if (!fs.getFile(f, "webroot").isDirectory) return@forEach
+                if (!fs.getFile(f, "module.prop").exists()) return@forEach
                 if (fs.getFile(f, "disable").exists() && !showDisabled) return@forEach
                 var name = f.name
                 val id = f.name
