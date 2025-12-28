@@ -29,6 +29,7 @@ class MainActivity : AppCompatActivity(), FileSystemService.Listener {
     private var moduleList = emptyList<Module>()
     private lateinit var adapter: Adapter
     private val prefs by lazy { getSharedPreferences("settings", MODE_PRIVATE) }
+    private var shouldRefresh = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Enable edge to edge
@@ -68,7 +69,6 @@ class MainActivity : AppCompatActivity(), FileSystemService.Listener {
         binding.swipeRefresh.setOnRefreshListener {
             refresh()
         }
-        binding.swipeRefresh.isRefreshing = true
         refresh()
     }
 
@@ -96,7 +96,16 @@ class MainActivity : AppCompatActivity(), FileSystemService.Listener {
         return true
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (shouldRefresh) {
+            refresh()
+            shouldRefresh = false
+        }
+    }
+
     private fun refresh() {
+        binding.swipeRefresh.isRefreshing = true
         moduleList = emptyList()
         adapter.notifyDataSetChanged()
         binding.info.setText(R.string.loading)
@@ -179,6 +188,7 @@ class MainActivity : AppCompatActivity(), FileSystemService.Listener {
             holder.binding.version.text = resources.getString(R.string.version, item.version)
             holder.binding.desc.text = item.desc
             holder.binding.root.setOnClickListener {
+                shouldRefresh = true
                 startActivity(
                     Intent(this@MainActivity, WebUIActivity::class.java)
                         .setData("ksuwebui://webui/$id".toUri())
