@@ -141,6 +141,7 @@ class MainActivity : AppCompatActivity(), FileSystemService.Listener {
                 }
                 mods.add(Module(name, id, desc, author, version))
             }
+            mods.sortBy { it.name.lowercase() }
             runOnUiThread {
                 moduleList = mods
                 adapter.notifyDataSetChanged()
