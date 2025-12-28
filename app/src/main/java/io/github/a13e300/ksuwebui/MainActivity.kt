@@ -31,6 +31,14 @@ class MainActivity : AppCompatActivity(), FileSystemService.Listener {
     private val prefs by lazy { getSharedPreferences("settings", MODE_PRIVATE) }
     private var shouldRefresh = false
 
+    private fun getPinnedModules(): MutableSet<String> {
+        return prefs.getStringSet("pinned_modules", emptySet<String>())?.toMutableSet() ?: mutableSetOf()
+    }
+
+    private fun savePinnedModules(pinned: Set<String>) {
+        prefs.edit { putStringSet("pinned_modules", pinned) }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // Enable edge to edge
         enableEdgeToEdge()
@@ -141,7 +149,9 @@ class MainActivity : AppCompatActivity(), FileSystemService.Listener {
                 }
                 mods.add(Module(name, id, desc, author, version))
             }
-            mods.sortBy { it.name.lowercase() }
+            val pinnedIds = getPinnedModules()
+            mods.forEach { it.pinned = it.id in pinnedIds }
+            mods.sortWith(compareByDescending<Module> { it.pinned }.thenBy { it.name.lowercase() })
             runOnUiThread {
                 moduleList = mods
                 adapter.notifyDataSetChanged()
@@ -164,7 +174,7 @@ class MainActivity : AppCompatActivity(), FileSystemService.Listener {
         binding.swipeRefresh.isRefreshing = false
     }
 
-    data class Module(val name: String, val id: String, val desc: String, val author: String, val version: String)
+    data class Module(val name: String, val id: String, val desc: String, val author: String, val version: String, var pinned: Boolean = false)
 
     class ViewHolder(val binding: ItemModuleBinding) : RecyclerView.ViewHolder(binding.root)
 
@@ -188,6 +198,9 @@ class MainActivity : AppCompatActivity(), FileSystemService.Listener {
             holder.binding.author.text = resources.getString(R.string.author, item.author)
             holder.binding.version.text = resources.getString(R.string.version, item.version)
             holder.binding.desc.text = item.desc
+            holder.binding.name.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                0, 0, if (item.pinned) R.drawable.ic_push_pin else 0, 0
+            )
             holder.binding.root.setOnClickListener {
                 shouldRefresh = true
                 startActivity(
@@ -196,6 +209,19 @@ class MainActivity : AppCompatActivity(), FileSystemService.Listener {
                         .putExtra("id", id)
                         .putExtra("name", name)
                 )
+            }
+            holder.binding.root.setOnLongClickListener {
+                item.pinned = !item.pinned
+                val pinnedIds = getPinnedModules()
+                if (item.pinned) {
+                    pinnedIds.add(item.id)
+                } else {
+                    pinnedIds.remove(item.id)
+                }
+                savePinnedModules(pinnedIds)
+                moduleList = moduleList.sortedWith(compareByDescending<Module> { it.pinned }.thenBy { it.name.lowercase() })
+                notifyDataSetChanged()
+                true
             }
         }
 
