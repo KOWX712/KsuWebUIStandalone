@@ -23,7 +23,9 @@
             android:layout_height="wrap_content"
             android:textColor="?attr/colorOnSurface"
             android:textSize="18sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:drawablePadding="8dp"
+            app:drawableEndCompat="@drawable/ic_push_pin" />
 
         <TextView
             android:id="@+id/author"
