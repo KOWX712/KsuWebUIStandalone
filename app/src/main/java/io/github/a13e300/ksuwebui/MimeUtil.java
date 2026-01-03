@@ -18,7 +18,7 @@ package io.github.a13e300.ksuwebui;
 
 import java.net.URLConnection;
 
-class MimeUtil {
+public class MimeUtil {
 
     public static String getMimeFromFileName(String fileName) {
         if (fileName == null) {
@@ -83,6 +83,52 @@ class MimeUtil {
             case "bmp" -> "image/bmp";
             case "tiff", "tif" -> "image/tiff";
             default -> null;
+        };
+    }
+
+    public static String getExtensionFromMime(String mimeType) {
+        if (mimeType == null) {
+            return "bin";
+        }
+
+        return switch (mimeType) {
+            case "video/webm" -> "webm";
+            case "video/mpeg" -> "mpeg";
+            case "audio/mpeg" -> "mp3";
+            case "application/wasm" -> "wasm";
+            case "application/xhtml+xml" -> "xhtml";
+            case "audio/flac" -> "flac";
+            case "audio/ogg" -> "ogg";
+            case "audio/wav" -> "wav";
+            case "audio/x-m4a" -> "m4a";
+            case "image/gif" -> "gif";
+            case "image/jpeg" -> "jpg";
+            case "image/png" -> "png";
+            case "image/apng" -> "apng";
+            case "image/svg+xml" -> "svg";
+            case "image/webp" -> "webp";
+            case "multipart/related" -> "mht";
+            case "text/css" -> "css";
+            case "text/html" -> "html";
+            case "application/javascript", "text/javascript" -> "js";
+            case "text/xml" -> "xml";
+            case "video/mp4" -> "mp4";
+            case "video/ogg" -> "ogv";
+            case "image/x-icon" -> "ico";
+            case "application/font-woff" -> "woff";
+            case "application/gzip" -> "gz";
+            case "application/json", "text/json" -> "json";
+            case "application/pdf" -> "pdf";
+            case "application/zip" -> "zip";
+            case "image/bmp" -> "bmp";
+            case "image/tiff" -> "tiff";
+            default -> {
+                if (mimeType.startsWith("text/")) {
+                    yield "txt";
+                } else {
+                    yield "bin";
+                }
+            }
         };
     }
 }
