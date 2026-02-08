@@ -1,14 +1,12 @@
 package io.github.a13e300.ksuwebui
 
 import android.app.Activity
-import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.os.Handler
 import android.os.Looper
 import android.text.TextUtils
 import android.view.Window
 import android.webkit.JavascriptInterface
-import android.webkit.WebView
 import android.widget.Toast
 import androidx.core.content.pm.PackageInfoCompat
 import androidx.core.view.WindowInsetsCompat
@@ -21,11 +19,11 @@ import org.json.JSONObject
 import java.io.File
 import java.util.concurrent.CompletableFuture
 
-class WebViewInterface(
-    val context: Context,
-    private val webView: WebView,
-    private val modDir: String
-) {
+class WebViewInterface(private val state: WebUIState) {
+
+    private val context get() = state.webView!!.context
+    private val webView get() = state.webView!!
+    private val modDir get() = state.moduleDir
 
     @JavascriptInterface
     fun exec(cmd: String): String {
@@ -164,29 +162,35 @@ class WebViewInterface(
 
     @JavascriptInterface
     fun fullScreen(enable: Boolean) {
-        if (context is Activity) {
+        val ctx = context
+        if (ctx is Activity) {
             Handler(Looper.getMainLooper()).post {
                 if (enable) {
-                    hideSystemUI(context.window)
+                    hideSystemUI(ctx.window)
                 } else {
-                    showSystemUI(context.window)
+                    showSystemUI(ctx.window)
                 }
             }
+        }
+        enableEdgeToEdge(enable)
+    }
+
+    @JavascriptInterface
+    fun enableEdgeToEdge(enable: Boolean = true) {
+        val ctx = context
+        if (ctx is WebUIActivity) {
+            ctx.enableEdgeToEdge(enable)
         }
     }
 
     @JavascriptInterface
-    fun enableInsets(enable: Boolean = true) {
-        if (context is WebUIActivity) {
-            context.enableInsets(enable)
-        }
-    }
+    fun enableInsets(enable: Boolean = true) = enableEdgeToEdge(enable)
 
     @JavascriptInterface
     fun moduleInfo(): String {
         val currentModuleInfo = JSONObject()
         currentModuleInfo.put("moduleDir", modDir)
-        val moduleId = File(modDir).getName()
+        val moduleId = File(modDir).name
         currentModuleInfo.put("id", moduleId)
         // TODO: more
         return currentModuleInfo.toString()
@@ -244,8 +248,9 @@ class WebViewInterface(
 
     @JavascriptInterface
     fun exit() {
-        if (context is Activity) {
-            context.finish()
+        val ctx = context
+        if (ctx is Activity) {
+            ctx.finish()
         }
     }
 }

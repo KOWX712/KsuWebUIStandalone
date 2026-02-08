@@ -2,21 +2,14 @@ package io.github.a13e300.ksuwebui
 
 import android.annotation.SuppressLint
 import android.app.ActivityManager
-import android.content.ActivityNotFoundException
-import android.content.Context
 import android.content.Intent
-import android.graphics.Color
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
 import android.view.ViewGroup
-import android.webkit.ValueCallback
-import android.webkit.WebChromeClient
-import android.webkit.WebResourceRequest
-import android.webkit.WebResourceResponse
-import android.webkit.WebView
-import android.webkit.WebViewClient
+import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -24,38 +17,20 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
-import androidx.webkit.WebViewAssetLoader
 import com.google.android.material.progressindicator.CircularProgressIndicator
 import com.topjohnwu.superuser.nio.FileSystemManager
-import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import java.io.File
 
 @SuppressLint("SetJavaScriptEnabled")
 class WebUIActivity : ComponentActivity(), FileSystemService.Listener {
-    private lateinit var webviewInterface: WebViewInterface
-    private var webView: WebView? = null
-    private lateinit var container: FrameLayout
-    private lateinit var insets: Insets
-    private var insetsContinuation: CancellableContinuation<Unit>? = null
-    private var isInsetsEnabled = false
-    private lateinit var fileChooserLauncher: ActivityResultLauncher<Intent>
-    private var filePathCallback: ValueCallback<Array<Uri>>? = null
-    private lateinit var moduleDir: String
-    private var enableWebDebugging = false
+    
+    private val webUIState = WebUIState()
+    internal lateinit var fileChooserLauncher: ActivityResultLauncher<Intent>
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Enable edge to edge
-        enableEdgeToEdge()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            window.isNavigationBarContrastEnforced = false
-        }
-
         super.onCreate(savedInstanceState)
 
         MonetColorsProvider.updateCss(this)
@@ -70,15 +45,6 @@ class WebUIActivity : ComponentActivity(), FileSystemService.Listener {
             })
         }
         setContentView(progressLayout)
-
-        lifecycleScope.launch(Dispatchers.IO) {
-            if (AppList.getApplist().isEmpty()) {
-                AppList.getApps(this@WebUIActivity)
-            }
-            withContext(Dispatchers.Main) {
-                setupWebView()
-            }
-        }
 
         fileChooserLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
@@ -97,22 +63,27 @@ class WebUIActivity : ComponentActivity(), FileSystemService.Listener {
                 }
                 else -> null
             }
-            filePathCallback?.onReceiveValue(uris)
-            filePathCallback = null
+            webUIState.filePathCallback?.onReceiveValue(uris)
+            webUIState.filePathCallback = null
+        }
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            if (AppList.getApplist().isEmpty()) {
+                AppList.getApps(this@WebUIActivity)
+            }
+            withContext(Dispatchers.Main) {
+                if (prepareWebView(webUIState)) {
+                    val container = FrameLayout(this@WebUIActivity)
+                    setupWebUIScreen(webUIState, container)
+                    updateTaskDescription()
+                    FileSystemService.start(this@WebUIActivity)
+                }
+            }
         }
     }
 
-    private fun erudaConsole(context: Context): String {
-        return context.assets.open("eruda.min.js").bufferedReader().use { it.readText() }
-    }
-
-    private suspend fun setupWebView() {
-        val moduleId = intent.getStringExtra("id")
-        if (moduleId == null) {
-            finish()
-            return
-        }
-        val name = intent.getStringExtra("name") ?: moduleId
+    private fun updateTaskDescription() {
+        val name = webUIState.moduleName
         if (name.isNotEmpty()) {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
                 @Suppress("DEPRECATION")
@@ -122,136 +93,10 @@ class WebUIActivity : ComponentActivity(), FileSystemService.Listener {
                 setTaskDescription(taskDescription)
             }
         }
-
-        val prefs = getSharedPreferences("settings", MODE_PRIVATE)
-        enableWebDebugging = prefs.getBoolean("enable_web_debugging", BuildConfig.DEBUG)
-        WebView.setWebContentsDebuggingEnabled(enableWebDebugging)
-
-        moduleDir = "/data/adb/modules/$moduleId"
-        insets = Insets(0, 0, 0, 0)
-
-        container = FrameLayout(this).apply {
-            layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-        }
-
-        this.webView = WebView(this).apply {
-            setBackgroundColor(Color.TRANSPARENT)
-            val density = resources.displayMetrics.density
-
-            ViewCompat.setOnApplyWindowInsetsListener(container) { view, windowInsets ->
-                val inset = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
-                insets = Insets(
-                    top = (inset.top / density).toInt(),
-                    bottom = (inset.bottom / density).toInt(),
-                    left = (inset.left / density).toInt(),
-                    right = (inset.right / density).toInt()
-                )
-                if (isInsetsEnabled) {
-                    view.setPadding(0, 0, 0, 0)
-                } else {
-                    view.setPadding(inset.left, inset.top, inset.right, inset.bottom)
-                }
-                insetsContinuation?.resumeWith(Result.success(Unit))
-                insetsContinuation = null
-                WindowInsetsCompat.CONSUMED
-            }
-            settings.javaScriptEnabled = true
-            settings.domStorageEnabled = true
-            settings.allowFileAccess = false
-            webviewInterface = WebViewInterface(this@WebUIActivity, this, moduleDir)
-        }
-        container.addView(this.webView)
-        setContentView(container)
-
-        if (insets == Insets(0, 0, 0, 0)) {
-            suspendCancellableCoroutine { cont ->
-                insetsContinuation = cont
-                cont.invokeOnCancellation {
-                    insetsContinuation = null
-                }
-            }
-        }
-
-        FileSystemService.start(this)
-    }
-
-    private fun setupWebview(fs: FileSystemManager) {
-        val webRoot = File("$moduleDir/webroot")
-        val webViewAssetLoader = WebViewAssetLoader.Builder()
-            .setDomain("mui.kernelsu.org")
-            .addPathHandler(
-                "/",
-                RemoteFsPathHandler(
-                    this,
-                    webRoot,
-                    fs,
-                    { insets },
-                    { enable -> enableInsets(enable) }
-                )
-            )
-            .build()
-        val webViewClient = object : WebViewClient() {
-            override fun shouldInterceptRequest(
-                view: WebView,
-                request: WebResourceRequest
-            ): WebResourceResponse? {
-                val url = request.url
-
-                // Handle ksu://icon/[packageName] to serve app icon via WebView
-                if (url.scheme.equals("ksu", ignoreCase = true) && url.host.equals("icon", ignoreCase = true)) {
-                    val packageName = url.path?.substring(1)
-                    if (!packageName.isNullOrEmpty()) {
-                        val icon = AppIconUtil.loadAppIconSync(this@WebUIActivity, packageName, 512)
-                        if (icon != null) {
-                            val stream = java.io.ByteArrayOutputStream()
-                            icon.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream)
-                            val inputStream = java.io.ByteArrayInputStream(stream.toByteArray())
-                            return WebResourceResponse("image/png", null, inputStream)
-                        }
-                    }
-                }
-
-                return webViewAssetLoader.shouldInterceptRequest(url)
-            }
-
-            override fun onPageFinished(view: WebView?, url: String?) {
-                if (enableWebDebugging) {
-                    view?.evaluateJavascript(erudaConsole(this@WebUIActivity), null)
-                    view?.evaluateJavascript("eruda.init();", null)
-                }
-            }
-        }
-        webView?.apply {
-            addJavascriptInterface(webviewInterface, "ksu")
-            setWebViewClient(webViewClient)
-            webChromeClient = object : WebChromeClient() {
-                override fun onShowFileChooser(
-                    webView: WebView?,
-                    filePathCallback: ValueCallback<Array<Uri>>?,
-                    fileChooserParams: FileChooserParams?
-                ): Boolean {
-                    this@WebUIActivity.filePathCallback?.onReceiveValue(null)
-                    this@WebUIActivity.filePathCallback = filePathCallback
-                    val intent = fileChooserParams?.createIntent() ?: Intent(Intent.ACTION_GET_CONTENT).apply { type = "*/*" }
-                    if (fileChooserParams?.mode == FileChooserParams.MODE_OPEN_MULTIPLE) {
-                        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-                    }
-                    try {
-                        fileChooserLauncher.launch(intent)
-                    } catch (_: ActivityNotFoundException) {
-                        filePathCallback?.onReceiveValue(null)
-                        this@WebUIActivity.filePathCallback = null
-                        return false
-                    }
-                    return true
-                }
-            }
-            loadUrl("https://mui.kernelsu.org/index.html")
-        }
     }
 
     override fun onServiceAvailable(fs: FileSystemManager) {
-        setupWebview(fs)
+        initWebView(fs, webUIState)
     }
 
     override fun onLaunchFailed() {
@@ -259,17 +104,36 @@ class WebUIActivity : ComponentActivity(), FileSystemService.Listener {
         finish()
     }
 
-    fun enableInsets(enable: Boolean = true) {
+    fun enableEdgeToEdge(enable: Boolean = true) {
         runOnUiThread {
-            if (isInsetsEnabled != enable) {
-                isInsetsEnabled = enable
-                ViewCompat.requestApplyInsets(container)
+            if (enable) {
+                (this as ComponentActivity).enableEdgeToEdge()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    window.isNavigationBarContrastEnforced = false
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    window.attributes.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                }
+            }
+            webUIState.isEdgeToEdgeEnabled = enable
+            val container = webUIState.webView?.parent as? android.view.View
+            container?.let { ViewCompat.requestApplyInsets(it) }
+
+            if (enable) {
+                webUIState.webView?.evaluateJavascript(webUIState.insets.js, null)
             }
         }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        webUIState.webView?.settings?.textZoom = (newConfig.fontScale * 100).toInt()
+        MonetColorsProvider.updateCss(this)
     }
 
     override fun onDestroy() {
         super.onDestroy()
         FileSystemService.removeListener(this)
+        webUIState.webView?.destroy()
     }
 }
