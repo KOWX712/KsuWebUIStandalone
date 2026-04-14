@@ -34,6 +34,7 @@ class WebUIActivity : ComponentActivity(), FileSystemService.Listener {
         super.onCreate(savedInstanceState)
 
         MonetColorsProvider.updateCss(this)
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING)
 
         val progressLayout = FrameLayout(this).apply {
             addView(CircularProgressIndicator(this@WebUIActivity).apply {

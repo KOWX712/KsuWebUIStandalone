@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.view.ViewGroup
 import android.webkit.WebView
 import android.widget.FrameLayout
+import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 
@@ -17,30 +18,31 @@ fun WebUIActivity.setupWebUIScreen(state: WebUIState, container: FrameLayout) {
         val density = resources.displayMetrics.density
 
         ViewCompat.setOnApplyWindowInsetsListener(container) { view, windowInsets ->
-            val inset = windowInsets.getInsets(
+            val safeDrawing = windowInsets.getInsets(
                 WindowInsetsCompat.Type.systemBars() or
                         WindowInsetsCompat.Type.displayCutout() or
                         WindowInsetsCompat.Type.ime()
             )
-            val newInsets = Insets(
-                top = (inset.top / density).toInt(),
-                bottom = (inset.bottom / density).toInt(),
-                left = (inset.left / density).toInt(),
-                right = (inset.right / density).toInt()
+            val systemBars = windowInsets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            val ime = windowInsets.getInsets(WindowInsetsCompat.Type.ime())
+            val layout = calculateWebUIInsetLayout(
+                density = density,
+                safeDrawing = safeDrawing.toPixelInsets(),
+                systemBars = systemBars.toPixelInsets(),
+                ime = ime.toPixelInsets(),
+                isEdgeToEdgeEnabled = state.isEdgeToEdgeEnabled,
             )
 
-            if (state.insets != newInsets) {
-                state.insets = newInsets
+            if (state.insets != layout.reportedInsets) {
+                state.insets = layout.reportedInsets
                 if (state.isEdgeToEdgeEnabled) {
                     evaluateJavascript(state.insets.js, null)
                 }
             }
 
-            if (state.isEdgeToEdgeEnabled) {
-                view.setPadding(0, 0, 0, 0)
-            } else {
-                view.setPadding(inset.left, inset.top, inset.right, inset.bottom)
-            }
+            view.setPadding(layout.padding.left, layout.padding.top, layout.padding.right, layout.padding.bottom)
             WindowInsetsCompat.CONSUMED
         }
         settings.javaScriptEnabled = true
@@ -51,3 +53,10 @@ fun WebUIActivity.setupWebUIScreen(state: WebUIState, container: FrameLayout) {
     container.addView(state.webView)
     setContentView(container)
 }
+
+private fun Insets.toPixelInsets() = PixelInsets(
+    top = top,
+    bottom = bottom,
+    left = left,
+    right = right,
+)
