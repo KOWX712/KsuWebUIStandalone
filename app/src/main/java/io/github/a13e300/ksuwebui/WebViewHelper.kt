@@ -159,6 +159,13 @@ fun WebUIActivity.initWebView(fs: FileSystemManager, state: WebUIState) {
                 state.filePathCallback?.onReceiveValue(null)
                 state.filePathCallback = filePathCallback
                 val intent = fileChooserParams?.createIntent() ?: Intent(Intent.ACTION_GET_CONTENT).apply { type = "*/*" }
+
+                if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) {
+                    if (intent.type?.startsWith(".") == true) {
+                        intent.type = "*/*"
+                    }
+                }
+
                 if (fileChooserParams?.mode == FileChooserParams.MODE_OPEN_MULTIPLE) {
                     intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
                 }
