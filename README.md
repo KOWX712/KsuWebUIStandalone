@@ -1,5 +1,5 @@
 # KsuWebUI
 
-[KernelSU WebUI](https://kernelsu.org/guide/module-webui.html) 的独立 App 实现
+Standalone implementation of the [KernelSU WebUI] application (https://kernelsu.org/guide/module-webui.html)
 
-适用于 Magisk, KernelSU 和 APatch    
+Suitable for Magisk, KernelSU, and APatch
