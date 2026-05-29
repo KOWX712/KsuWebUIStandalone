@@ -1,5 +1,5 @@
 # KsuWebUI
 
-Samodzielna implementacja aplikacji [KernelSU WebUI](https://kernelsu.org/guide/module-webui.html)
+Standalone implementation of the [KernelSU WebUI] application (https://kernelsu.org/guide/module-webui.html)
 
-Odpowiednia dla Magisk, KernelSU i APatch
+Suitable for Magisk, KernelSU, and APatch
