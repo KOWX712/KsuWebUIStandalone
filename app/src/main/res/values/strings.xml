@@ -8,4 +8,6 @@
     <string name="version">Version: %s</string>
     <string name="show_disabled">Show Disabled</string>
     <string name="enable_monet_color">Monet Color</string>
+    <string name="open_remote_url">Remote URL</string>
+    <string name="open_remote_url_title">Open Remote URL</string>
 </resources>

@@ -4,9 +4,11 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.text.InputType
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -17,6 +19,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import com.topjohnwu.superuser.nio.FileSystemManager
 import io.github.a13e300.ksuwebui.databinding.ActivityMainBinding
 import io.github.a13e300.ksuwebui.databinding.ItemModuleBinding
@@ -107,6 +112,43 @@ class MainActivity : AppCompatActivity(), FileSystemService.Listener {
                 val newValue = !it.isChecked
                 prefs.edit { putBoolean("enable_monet", newValue) }
                 it.isChecked = newValue
+                true
+            }
+        }
+        menu.findItem(R.id.open_remote_url).apply {
+            setOnMenuItemClickListener {
+                val textInputLayout = TextInputLayout(this@MainActivity).apply {
+                    hint = "URL"
+                    placeholderText = "http://localhost:5173"
+                }
+                val input = TextInputEditText(this@MainActivity).apply {
+                    inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+                }
+                textInputLayout.addView(input)
+                val container = FrameLayout(this@MainActivity)
+                val params = FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+                params.leftMargin = resources.getDimensionPixelSize(androidx.appcompat.R.dimen.abc_dialog_padding_material)
+                params.rightMargin = resources.getDimensionPixelSize(androidx.appcompat.R.dimen.abc_dialog_padding_material)
+                textInputLayout.layoutParams = params
+                container.addView(textInputLayout)
+
+                MaterialAlertDialogBuilder(this@MainActivity)
+                    .setTitle(R.string.open_remote_url_title)
+                    .setView(container)
+                    .setPositiveButton(android.R.string.ok) { _, _ ->
+                        val url = input.text.toString().trim()
+                        if (url.isNotEmpty()) {
+                            startActivity(
+                                Intent(this@MainActivity, WebUIActivity::class.java)
+                                    .putExtra("url", url)
+                            )
+                        }
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
                 true
             }
         }

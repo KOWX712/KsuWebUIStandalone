@@ -16,4 +16,8 @@
         android:title="@string/enable_monet_color"
         android:checkable="true"
         app:showAsAction="never" />
+    <item
+        android:id="@+id/open_remote_url"
+        android:title="@string/open_remote_url"
+        app:showAsAction="never" />
 </menu>

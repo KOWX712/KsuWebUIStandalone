@@ -91,7 +91,11 @@ class WebUIActivity : ComponentActivity(), FileSystemService.Listener {
                     val container = FrameLayout(this@WebUIActivity)
                     setupWebUIScreen(webUIState, container)
                     updateTaskDescription()
-                    FileSystemService.start(this@WebUIActivity)
+                    if (webUIState.remoteUrl != null) {
+                        initWebView(null, webUIState)
+                    } else {
+                        FileSystemService.start(this@WebUIActivity)
+                    }
                 }
             }
         }
