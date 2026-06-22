@@ -133,8 +133,8 @@ private fun WebUIActivity.createWebViewClient(
         override fun onPageFinished(view: WebView?, url: String?) {
             val prefs = getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
             if (prefs.getBoolean("enable_web_debugging", BuildConfig.DEBUG)) {
-                view?.evaluateJavascript(assets.open("eruda.min.js").bufferedReader().use { it.readText() }, null)
-                view?.evaluateJavascript("eruda.init();", null)
+                val erudaJs = assets.open("eruda.min.js").bufferedReader().use { it.readText() }
+                view?.evaluateJavascript("if (!window.eruda) { $erudaJs eruda.init(); }", null)
             }
         }
     }
