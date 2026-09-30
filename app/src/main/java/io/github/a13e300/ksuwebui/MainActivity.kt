@@ -11,22 +11,24 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.edit
+import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.topjohnwu.superuser.nio.FileSystemManager
 import io.github.a13e300.ksuwebui.databinding.ActivityMainBinding
 import io.github.a13e300.ksuwebui.databinding.ItemModuleBinding
-import androidx.core.net.toUri
-import androidx.core.content.edit
+import io.github.a13e300.ksuwebui.services.AppList
+import io.github.a13e300.ksuwebui.services.FileSystemService
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @SuppressLint("NotifyDataSetChanged")
 class MainActivity : AppCompatActivity(), FileSystemService.Listener {

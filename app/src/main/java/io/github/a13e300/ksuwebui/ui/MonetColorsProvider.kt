@@ -1,4 +1,4 @@
-package io.github.a13e300.ksuwebui
+package io.github.a13e300.ksuwebui.ui
 
 import android.content.Context
 import android.content.res.Resources.Theme

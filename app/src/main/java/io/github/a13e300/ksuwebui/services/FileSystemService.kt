@@ -1,4 +1,4 @@
-package io.github.a13e300.ksuwebui
+package io.github.a13e300.ksuwebui.services
 
 import android.content.ComponentName
 import android.content.Intent
@@ -8,6 +8,7 @@ import androidx.annotation.MainThread
 import com.topjohnwu.superuser.Shell
 import com.topjohnwu.superuser.ipc.RootService
 import com.topjohnwu.superuser.nio.FileSystemManager
+import io.github.a13e300.ksuwebui.App
 import java.util.concurrent.CopyOnWriteArraySet
 
 class FileSystemService : RootService() {

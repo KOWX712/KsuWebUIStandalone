@@ -1,4 +1,4 @@
-package io.github.a13e300.ksuwebui
+package io.github.a13e300.ksuwebui.services
 
 import android.content.ComponentName
 import android.content.Context
@@ -10,7 +10,7 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import com.topjohnwu.superuser.ipc.RootService
-import io.github.a13e300.ksuwebui.services.RootServices
+import io.github.a13e300.ksuwebui.IKsuWebuiStandaloneInterface
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 

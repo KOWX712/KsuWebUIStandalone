@@ -1,4 +1,4 @@
-package io.github.a13e300.ksuwebui
+package io.github.a13e300.ksuwebui.webui
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
@@ -19,6 +19,10 @@ import android.widget.LinearLayout
 import androidx.webkit.WebViewAssetLoader
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.topjohnwu.superuser.nio.FileSystemManager
+import io.github.a13e300.ksuwebui.BuildConfig
+import io.github.a13e300.ksuwebui.WebUIActivity
+import io.github.a13e300.ksuwebui.ui.MonetColorsProvider
+import io.github.a13e300.ksuwebui.util.AppIconUtil
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File

@@ -1,6 +1,7 @@
-package io.github.a13e300.ksuwebui
+package io.github.a13e300.ksuwebui.util
 
 import com.topjohnwu.superuser.Shell
+import io.github.a13e300.ksuwebui.BuildConfig
 
 inline fun <T> withNewRootShell(
     globalMnt: Boolean = false,

@@ -1,4 +1,4 @@
-package io.github.a13e300.ksuwebui
+package io.github.a13e300.ksuwebui.webui
 
 import android.annotation.SuppressLint
 import android.graphics.Color
@@ -8,11 +8,12 @@ import android.widget.FrameLayout
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import io.github.a13e300.ksuwebui.WebUIActivity
 
 @SuppressLint("SetJavaScriptEnabled")
 fun WebUIActivity.setupWebUIScreen(state: WebUIState, container: FrameLayout) {
     container.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-    
+
     state.webView = WebView(this).apply {
         setBackgroundColor(Color.TRANSPARENT)
         val density = resources.displayMetrics.density

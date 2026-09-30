@@ -1,4 +1,4 @@
-package io.github.a13e300.ksuwebui
+package io.github.a13e300.ksuwebui.util
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -8,6 +8,7 @@ import android.graphics.drawable.Drawable
 import android.util.LruCache
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
+import io.github.a13e300.ksuwebui.services.AppList
 
 object AppIconUtil {
     // Limit cache size to 200 icons

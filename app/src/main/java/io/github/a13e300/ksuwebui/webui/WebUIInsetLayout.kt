@@ -1,4 +1,6 @@
-package io.github.a13e300.ksuwebui
+package io.github.a13e300.ksuwebui.webui
+
+import io.github.a13e300.ksuwebui.ui.Insets
 
 data class PixelInsets(
     val top: Int,

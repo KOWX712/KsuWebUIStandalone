@@ -1,6 +1,7 @@
-package io.github.a13e300.ksuwebui
+package io.github.a13e300.ksuwebui.webui
 
 import android.webkit.WebView
+import io.github.a13e300.ksuwebui.ui.Insets
 
 class WebUIState {
     var webView: WebView? = null

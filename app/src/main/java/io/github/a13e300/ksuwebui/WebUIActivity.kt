@@ -21,13 +21,20 @@ import androidx.core.view.ViewCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.progressindicator.CircularProgressIndicator
 import com.topjohnwu.superuser.nio.FileSystemManager
+import io.github.a13e300.ksuwebui.services.AppList
+import io.github.a13e300.ksuwebui.services.FileSystemService
+import io.github.a13e300.ksuwebui.ui.MonetColorsProvider
+import io.github.a13e300.ksuwebui.webui.WebUIState
+import io.github.a13e300.ksuwebui.webui.initWebView
+import io.github.a13e300.ksuwebui.webui.prepareWebView
+import io.github.a13e300.ksuwebui.webui.setupWebUIScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @SuppressLint("SetJavaScriptEnabled")
 class WebUIActivity : ComponentActivity(), FileSystemService.Listener {
-    
+
     private val webUIState = WebUIState()
     internal lateinit var fileChooserLauncher: ActivityResultLauncher<Intent>
 
@@ -72,10 +79,14 @@ class WebUIActivity : ComponentActivity(), FileSystemService.Listener {
                                 data.clipData!!.getItemAt(i).uri // Multiple files
                             }
                         }
-                        data.data != null -> { arrayOf(data.data!!) } // Single file
+
+                        data.data != null -> {
+                            arrayOf(data.data!!)
+                        } // Single file
                         else -> null
                     }
                 }
+
                 else -> null
             }
             webUIState.filePathCallback?.onReceiveValue(uris)

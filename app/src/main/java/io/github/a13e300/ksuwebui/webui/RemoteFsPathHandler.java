@@ -1,4 +1,4 @@
-package io.github.a13e300.ksuwebui;
+package io.github.a13e300.ksuwebui.webui;
 
 import android.content.Context;
 import android.util.Log;
@@ -16,6 +16,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.zip.GZIPInputStream;
+
+import io.github.a13e300.ksuwebui.ui.Insets;
+import io.github.a13e300.ksuwebui.ui.MonetColorsProvider;
+import io.github.a13e300.ksuwebui.util.MimeUtil;
 
 /**
  * Handler class to open files from file system by root access
@@ -52,7 +56,7 @@ public final class RemoteFsPathHandler implements WebViewAssetLoader.PathHandler
      * Note: Any future addition to this list will be considered breaking changes to the API.
      */
     private static final String[] FORBIDDEN_DATA_DIRS =
-            new String[] {"/data/data", "/data/system"};
+            new String[]{"/data/data", "/data/system"};
 
     @NonNull
     private final File mDirectory;
@@ -89,10 +93,10 @@ public final class RemoteFsPathHandler implements WebViewAssetLoader.PathHandler
      * The application should typically use a dedicated subdirectory for the files it intends to
      * expose and keep them separate from other files.
      *
-     * @param context {@link Context} that is used to access app's internal storage.
-     * @param directory the absolute path of the exposed app internal storage directory from
-     *                  which files can be loaded.
-     * @param insetsSupplier {@link InsetsSupplier} to provide window insets for styling web content.
+     * @param context                   {@link Context} that is used to access app's internal storage.
+     * @param directory                 the absolute path of the exposed app internal storage directory from
+     *                                  which files can be loaded.
+     * @param insetsSupplier            {@link InsetsSupplier} to provide window insets for styling web content.
      * @param onInsetsRequestedListener {@link OnInsetsRequestedListener} to notify when insets are requested.
      * @throws IllegalArgumentException if the directory is not allowed.
      */
@@ -160,18 +164,18 @@ public final class RemoteFsPathHandler implements WebViewAssetLoader.PathHandler
             }
             String css = mInsetsSupplier.get().getCss();
             return new WebResourceResponse(
-                "text/css",
-                "utf-8",
-                new ByteArrayInputStream(css.getBytes(StandardCharsets.UTF_8))
+                    "text/css",
+                    "utf-8",
+                    new ByteArrayInputStream(css.getBytes(StandardCharsets.UTF_8))
             );
         }
         if ("internal/colors.css".equals(path)) {
             boolean enableMonet = mContext.getSharedPreferences("settings", Context.MODE_PRIVATE).getBoolean("enable_monet", true);
             String css = enableMonet ? MonetColorsProvider.INSTANCE.getColorsCss() : "";
             return new WebResourceResponse(
-                "text/css",
-                "utf-8",
-                new ByteArrayInputStream(css.getBytes(StandardCharsets.UTF_8))
+                    "text/css",
+                    "utf-8",
+                    new ByteArrayInputStream(css.getBytes(StandardCharsets.UTF_8))
             );
         }
         try {

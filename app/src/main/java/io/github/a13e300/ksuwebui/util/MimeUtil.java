@@ -1,4 +1,4 @@
-package io.github.a13e300.ksuwebui;
+package io.github.a13e300.ksuwebui.util;
 
 /*
  * Copyright 2023 The Android Open Source Project
@@ -18,7 +18,7 @@ package io.github.a13e300.ksuwebui;
 
 import java.net.URLConnection;
 
-class MimeUtil {
+public class MimeUtil {
 
     public static String getMimeFromFileName(String fileName) {
         if (fileName == null) {

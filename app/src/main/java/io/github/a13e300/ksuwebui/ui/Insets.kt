@@ -1,4 +1,4 @@
-package io.github.a13e300.ksuwebui
+package io.github.a13e300.ksuwebui.ui
 
 /**
  * Insets data class from GitHub@MMRLApp/WebUI-X-Portable
