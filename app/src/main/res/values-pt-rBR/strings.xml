@@ -1,0 +1,12 @@
+<resources>
+    <string name="enable_webview_debugging">Depuração</string>
+    <string name="please_grant_root">Conceda acesso root</string>
+    <string name="no_modules">Nenhum módulo</string>
+    <string name="loading">Carregando …</string>
+    <string name="author">Autor: %s</string>
+    <string name="version">Versão: %s</string>
+    <string name="show_disabled">Mostrar desativados</string>
+    <string name="enable_monet_color">Cor Monet</string>
+    <string name="start_downloading">Iniciar download</string>
+    <string name="download_failed">Falha no download: %s</string>
+</resources>
